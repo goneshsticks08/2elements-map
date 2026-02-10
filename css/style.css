@@ -1,0 +1,815 @@
+/* ===== 基本レイアウト ===== */
+body {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* =====ヘッダー ===== */
+/* ヘッダーを固定表示する */
+.main-header {
+  position: sticky;
+  top: 0;
+  z-index: 1500; /* 他の要素よりも前面に表示するための高い値 */
+  background-color: #f8f9fa;
+  border-bottom: 5px solid #f8f9fa;
+  margin-bottom: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  width: 100%;
+}
+
+/* スクロール時の表示を改善 */
+body {
+  scroll-padding-top: 60px; /* ヘッダーの高さに合わせて調整 */
+}
+
+/* 既存のz-indexよりも高い値を設定 */
+.sidebar-toggle {
+  z-index: 1510; /* ヘッダーのz-indexより大きい値 */
+}
+
+.header-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0;
+  color: #333;
+}
+
+.header-actions {
+  text-align: right;
+}
+
+.header-actions .btn {
+  margin-left: 8px;
+}
+
+/* ===== メインコンテンツ ===== */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  height: calc(100vh - 60px);
+}
+
+.main-content .row {
+  flex: 1;
+  margin: 0;
+}
+
+/* ===== サイドバー ===== */
+.sidebar {
+  position: relative;
+  width: 350px;
+  height: 100%;
+  background-color: #f8f9fa;
+  border-right: 1px solid #ddd;
+  transition: width 0.3s ease;
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.collapsed {
+  width: 50px;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 10px;right: 5px; /* 右端からの距離を調整 */
+  width: 26px; /* サイズを少し小さく */
+  height: 26px;
+  z-index: 120; /* 重なりの優先度を上げる */
+}
+
+.sidebar.collapsed .sidebar-toggle {
+  transform: rotate(180deg);
+}
+
+.sidebar-content {
+  padding-top: 25px; /* 上部に余白を追加 */
+  padding: 15px;
+  width: 100%;
+  transition: opacity 0.2s ease;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sidebar.collapsed .sidebar-content {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-section {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.sidebar-section:last-child {
+  border-bottom: none;
+}
+
+.sidebar-section h3 {
+  font-size: 16px;
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+/* ===== タブ切り替えボタン ===== */
+.sidebar-tabs {
+  display: flex;
+  width: 100%;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #dee2e6;
+  padding-right: 35px; /* トグルボタンのためのスペース確保 */
+}
+
+/* タブボタンのテキスト改行を防止 */
+.tab-btn {
+  flex: 1;
+  padding: 10px 4px; /* 左右のパディングを調整 */
+  background: #f8f9fa;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.85rem; /* フォントサイズをさらに小さく */
+  min-width: 0; /* flexアイテムのサイズ計算を修正 */
+}
+
+.tab-btn.active {
+  background: #fff;
+  border-bottom: 2px solid #007bff;
+  color: #007bff;
+}
+
+.tab-btn:hover {
+  background: #e9ecef;
+}
+
+/* ===== メインパネル（マップ） ===== */
+.main-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto !important; -webkit-overflow-scrolling: touch; /* モバイルでのスクロールを滑らかに */
+}
+
+/* ===== マップコンテナ ===== */
+.map-wrapper {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 300px;
+  display: flex;
+}
+
+.map-container {
+  flex: 1;
+  width: 100%;
+  min-height: 400px;
+  height: 100%;
+  border-radius: 0;
+  z-index: 50;
+  display: block;
+}
+
+/* =====分析結果 ===== */
+.analysis-results {
+  background-color: white;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  max-height: 35vh;
+  overflow-y: auto;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.result-label {
+  font-weight: bold;
+  color: #555;
+}
+
+/* ===== 対象データリスト ===== */
+.target-data-list {
+  margin-top: 15px;
+  max-height: 300px;
+  overflow-y: auto;border: 1px solid #eee;
+  border-radius: 5px;
+}
+
+.target-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.target-item:last-child {
+  border-bottom: none;
+}
+
+.target-item:hover {
+  background-color: #f0f7ff;
+}
+
+.target-item.active {
+  background-color: #e3f2fd;
+  border-left: 4px solid #007bff;
+}
+
+.target-name {
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.target-distance {
+  font-size: 13px;
+  color: #555;
+}
+
+/* ===== 下部パネル ===== */
+.bottom-panel {
+  background-color: #f8f9fa;
+  padding: 10px 0;
+  border-top: 1px solid #ddd;
+  position: relative;
+  bottom: 0;
+  width: 100%;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+/* ===== マップ凡例 ===== */
+.map-legend {
+  display: flex;
+  align-items: center;
+}
+
+.legend-title {
+  font-weight: bold;
+  margin-right: 15px;
+  color: #333;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-right: 20px;
+}
+
+.legend-color {
+  border-radius: 50%;
+  margin-right: 5px;
+  display: inline-block;
+}
+
+.legend-color.base-marker {
+  width: 20px;
+  height: 20px;
+  background-color: #FF8C00; /* オレンジ色 - 基準データ */
+  border: 2px solid white;
+}
+
+.legend-color.target-marker {
+  width: 15px;
+  height: 15px;
+  background-color: #009140; /* 緑色 - 対象データ */
+  border: 2px solid white;
+}
+
+.legend-label {
+  font-size: 14px;
+  color: #333;
+}
+
+.legend-description {
+  display: block;
+  font-size: 11px;
+  color: #666;margin-top: -2px;
+}
+
+/* ===== ヘッダー内の凡例 ===== */
+.main-header .map-legend {
+  display: flex;
+  align-items: center;
+}
+
+.main-header .legend-title {
+  font-size: 14px;
+  margin-right: 10px;
+}
+
+.main-header .legend-item {
+  margin-right: 15px;
+}
+
+.main-header .legend-label {
+  font-size: 12px;
+}
+
+.main-header .legend-description {
+  font-size: 10px;
+}
+
+/* ===== 準備中機能 ===== */
+.feature-wip {
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-wip::after {
+  content: "準備中";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 8px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border-radius: 2px;
+  padding: 0 3px;
+}
+
+/* ===== エクスポートエリア ===== */
+.export-wrapper {
+  height: 100%;
+  overflow-y: auto !important; /* スクロールを強制 */
+  padding-bottom: 50px; /* 余白を追加 */
+}
+
+/* ===== 都道府県チェックボックス ===== */
+.region-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.region-group {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 15px;
+}
+
+.region-group h5 {
+  font-size: 1rem;
+  margin-bottom: 5px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #ddd;
+}
+
+.prefecture-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 15px;
+}
+
+.prefecture-checkbox {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 10px;
+  margin-bottom: 5px;
+  white-space: nowrap;
+}
+
+/* ===== カードとテーブル ===== */
+/* カード全体をスクロール可能にする */
+.card {
+  margin-bottom: 25px;
+}
+
+/* 検索条件設定の高さを制限 */
+.card-body {
+  max-height: 60vh; /* 画面の60%までに制限 */
+  overflow-y: auto; /* スクロール可能に */
+}
+
+.table-responsive {
+  max-height: 60vh; /* より大きな高さに設定 */overflow-y: auto;
+}
+
+/* 対象データコンテナが見えるようにする */
+#prefecture-data-summary {
+  margin-bottom: 30px;
+}
+
+#prefecture-data-summary th,
+#prefecture-data-summary td {
+  text-align: center;
+}
+
+#prefecture-data-summary thead {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+
+/* スライダーのつまみを大きくするスタイル */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none; /* 標準プロパティを追加 */
+  width: 100%;
+  margin: 10px 0;
+}
+
+input[type=range]:focus {
+  outline: none;
+}
+
+/* スライダーのつまみ部分 */
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 24px;
+  width: 24px;
+  border-radius: 50%;
+  background: #007bff;
+  cursor: pointer;
+  margin-top: -8px;
+  border: 2px solid white;
+  box-shadow: 0 0 2px rgba(0,0,0,0.2);
+}
+
+input[type=range]::-moz-range-thumb {
+  height: 24px;
+  width: 24px;
+  border-radius: 50%;
+  background: #007bff;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 0 2px rgba(0,0,0,0.2);
+}
+
+/* スライダーのトラック部分 */
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: #e9ecef;
+  border-radius: 4px;
+}
+
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: #e9ecef;
+  border-radius: 4px;
+}
+
+/* データ準備パネル用スタイル */
+/* ステップナビゲーション - 統一版 */
+.step-navigation {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.step-item {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  cursor: pointer;
+}
+
+.step-item:not(:last-child) {
+  border-right: none;
+}
+
+.step-item:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.step-item:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.step-item.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.step-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: #007bff;
+  color: white;
+  border-radius: 50%;
+  margin-right: 10px;
+  font-size: 14px;
+}
+
+.step-item:hover:not(.active) {
+  background: #e3e3e3;
+}
+
+/* ステップコンテンツ */
+.step-content {
+  display: none;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  border: 1px solid #eee;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.step-content.active {
+  display: block;
+}
+
+/* コードブロック */
+.code-block {
+  background: #2d2d2d;
+  color: #f8f8f2;
+  padding: 15px;
+  border-radius: 5px;
+  font-family: monospace;
+  overflow-x: auto;
+  margin: 10px 0;line-height: 1.5;
+  font-size: 14px;
+}
+
+/* コマンドライン */
+.command-line {
+  background-color: #2c3e50; /* 濃い青系の背景 */
+  color: #ddd; /* 白に変更 */
+  border: none;
+  border-radius: 4px;
+  padding: 10px 15px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  margin: 8px 0;
+  display: block;
+  overflow-x: auto;
+}
+
+/* 手順アイコン */
+.step-icon {
+  background: #007bff;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* 手順説明 */
+.step-description {
+  margin-bottom: 20px;
+}
+
+.step-description h4 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.step-description h5 {
+  margin-top: 15px;
+  margin-bottom: 8px;
+  color: #555;
+  font-size: 15px;
+}
+
+.step-description p {
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.step-description ul, .step-description ol {
+  padding-left: 25px;
+  margin-bottom: 15px;
+}
+
+.step-description li {
+  margin-bottom: 5px;
+}
+
+/* 注意事項ボックス */
+.note-box {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.note-box strong {
+  color: #856404;
+}
+
+/* データ準備エリア */
+.preparation-wrapper {
+  height: 100%;
+  overflow-y: auto !important; /* スクロールを強制 */
+  padding-bottom: 50px; /* 余白を追加 */
+}
+
+/* カード内のステップコンテンツ調整 */
+.card .step-content {
+  border: none;
+  background: transparent;
+  max-height: none;
+}
+
+/* ===== モーダル ===== */
+.modal-dialog.modal-lg {
+  max-width: 800px;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-body .form-group {
+  margin-bottom: 15px;
+}
+
+.modal-body textarea {
+  resize: vertical;
+}
+
+/* ===== マーカーのスタイル ===== */
+.selected {
+  transform: scale(1.2);
+  z-index: 1000 !important;
+  box-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+}
+
+.in-radius {
+  transform: scale(1.3);
+  z-index: 900 !important;
+  box-shadow: 0 0 5px rgba(0, 145, 64, 0.8);
+}
+
+/* ===== レスポンシブ対応 ===== */
+@media (max-width: 992px) {
+  .sidebar {
+    width: 270px;
+  }
+  .header-title {
+    font-size: 20px;
+  }
+  
+  .header-actions .btn {
+    font-size: 12px;
+    padding: 0.375rem 0.5rem;
+  }
+  
+  .main-header .legend-title,
+  .main-header .legend-label {
+    font-size: 11px;
+  }
+  
+  .main-header .legend-description {
+    font-size: 9px;
+  }
+  
+  .main-header .legend-item {
+    margin-right: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar.collapsed {
+    width: 0;
+  }
+  
+  .sidebar-toggle {
+    right: -15px;
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .map-container {
+    min-height: 400px;
+  }
+  
+  .result-item {
+    flex-direction: column;
+  }
+  
+  .result-label, .result-value {
+    width: 100%;
+  }
+  
+  .header-title {
+    font-size: 18px;
+  }
+  
+  .legend-item {
+    margin-right: 10px;
+  }
+  
+  .legend-label {
+    font-size: 12px;
+  }
+  
+  .col-auto.d-flex {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  
+  .main-header .map-legend {
+    margin-bottom: 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  
+  .header-actions .btn {
+    margin: 2px;
+  }
+  
+  .bottom-panel .row {
+    flex-direction: column;
+  }
+  
+  .bottom-panel .col-auto {
+    margin-top: 10px;text-align: center;
+  }
+  
+  .map-legend {
+    justify-content: center;
+  }
+}
+
+/* 画面全体をスクロール可能にする追加対策 */
+body, html {
+  overflow-y: auto !important;
+  height: 100%;
+}
+
+.main-content {
+  overflow: visible !important;
+  height: auto !important;
+  min-height: calc(100vh - 60px);
+}
+
+/* 都道府県表示の修正用スタイル追加 */
+.region-prefecture-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.region-prefecture-set {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #eaeaea;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  overflow: hidden;
+}
+
+.region-title {
+  background-color: #f0f0f0;
+  padding: 8px 12px;
+  font-weight: bold;
+  border-bottom: 1px solid #ddd;
+}
+
+.prefecture-row {
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 15px;
+}

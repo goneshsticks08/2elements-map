@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2要素位置関係分析ツール</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <!-- カスタムCSS -->
+  <link rel="stylesheet" href="css/style.css">
+  <!-- コードブロック表示用のスタイル追加 -->
+  <style>
+    .code-block pre code {
+      white-space: pre;text-indent: -2em;
+      padding-left: 2em;
+      display: block;
+    }
+    
+    /* タブ切り替え用スタイルを以下に追加 */
+    .tabs {
+      margin-bottom: 15px;
+    }
+    .tab-header {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .tab-btn {
+      border: 1px solid #ddd;
+      background-color: #f8f9fa;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .tab-btn:first-child {
+      border-radius: 4px 0 0 4px;
+    }
+    .tab-btn:last-child {
+      border-radius: 0 4px 4px 0;
+    }
+    .tab-btn.active {
+      background-color: #007bff;
+      color: white;
+      border-color: #007bff;
+    }
+    .tab-pane {
+      display: none;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+    /* ステップ関連のスタイルはstyle.cssに一元化 */</style>
+  <!-- jsPDF ライブラリ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <!-- jsPDF用の日本語フォント -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/polyfills.umd.min.js"></script>
+  <script src="https://unpkg.com/@babel/polyfill@7.12.1/dist/polyfill.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-font@1.0.7/fonts/userDefinedFonts/SourceHanSansJP-Normal.js"></script>
+  <!-- html2pdfライブラリ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!--既存のスクリプト読み込み -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+</head>
+<body>
+  <header class="main-header">
+    <div class="container-fluid">
+      <div class="row align-items-center">
+        <div class="col">
+          <h1 class="header-title">位置関係分析</h1>
+        </div>
+        <div class="col-auto d-flex align-items-center"><!--d-flexを追加 -->
+          <!-- データ凡例をここに追加 -->
+          <div class="map-legend mr-3"> <!-- mr-3でマージン追加 -->
+            <div class="d-flex align-items-center">
+              <div class="legend-title mr-2">データ凡例:</div>
+              <div class="legend-item mr-2">
+                <div class="legend-color base-marker"></div>
+                <div class="legend-label">
+                  <span id="base-data-name"></span>
+                  <small class="legend-description">（基準データ）</small>
+                </div>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color target-marker"></div>
+                <div class="legend-label">
+                  <span id="target-data-name"></span>
+                  <small class="legend-description">（対象データ）</small>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#importModal">データインポート</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container-fluid main-content">
+    <div class="row no-gutters"><!--左側メニューパネル（折りたたみ可能） -->
+      <div id="sidebar" class="sidebar">
+        <div class="sidebar-toggle" id="sidebar-toggle">
+          <i class="fas fa-chevron-left"></i>
+        </div>
+        
+        <div class="sidebar-content">
+          <!-- タブ切り替えボタン -->
+          <div class="sidebar-tabs">
+            <button id="tab-preparation" class="tab-btn">事前準備</button>
+            <button id="tab-search" class="tab-btn active">検索</button>
+            <button id="tab-export" class="tab-btn">レポート</button>
+          </div>
+
+          <!-- 基準データ検索パネル -->
+          <div id="search-panel" class="sidebar-section">
+            <div class="form-group">
+              <label for="prefecture-select">都道府県</label>
+              <select id="prefecture-select" class="form-control">
+                <option value="">すべての都道府県</option>
+                <!--都道府県はJavaScriptで動的に追加 -->
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="base-data-select">基準データ</label>
+              <select id="base-data-select" class="form-control">
+                <option value="">基準データを選択してください</option>
+                <!-- 基準データはJavaScriptで動的に追加 -->
+              </select>
+            </div>
+            
+            <div class="control-group">
+              <h3>検索半径</h3>
+              <input type="range" class="custom-range" id="radius-slider" min="0.5" max="5" step="0.1" value="2">
+              <div id="radius-label" class="mt-2">検索半径:2.0km</div>
+            </div>
+            
+            <!-- 分析結果 -->
+            <div class="sidebar-section mt-4">
+              <h3>分析結果</h3>
+              <div class="analysis-results">
+                <div class="result-item">
+                  <div class="result-label">対象データ数:</div>
+                  <div class="result-value" id="target-count">0件</div>
+                </div>
+                <div id="target-data-list" class="target-data-list">
+                  <!-- 対象リストがここに動的に追加される -->
+                </div>
+              </div>
+            </div>
+            
+            <!--単一分析のエクスポート部分を修正 -->
+            <div class="sidebar-section mt-4">
+              <button id="export-report-btn" class="btn btn-primary btn-block">分析レポート（HTML）</button>
+            </div>
+          </div>
+          
+          <!-- エクスポート機能パネル（初期状態では非表示） -->
+          <div id="export-settings-panel" class="sidebar-section" style="display:none;">
+            <h3>データサマリー</h3>
+            <div class="data-summary-container p-3 bg-light rounded border">
+              <div class="summary-item d-flex justify-content-between mb-2">
+                <span class="font-weight-bold">基準データ総数：</span>
+                <span id="base-data-total">0件</span>
+              </div>
+              <div class="summary-item d-flex justify-content-between">
+                <span class="font-weight-bold">対象データ総数：</span>
+                <span id="target-data-total">0件</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- データ準備パネルを追加（search-panelとexport-settings-panelの後に追加） -->
+          <!-- サイドバー内のデータ準備パネル (簡略化) -->
+          <div id="data-preparation-panel" class="sidebar-section" style="display:none;">
+            <h3>データ準備手順</h3>
+            <p>右側のパネルにデータインポートの詳細手順が表示されています。</p>
+            <p>住所データから座標を取得し、アプリケーションにインポートする方法となります。</p>
+          </div>
+        </div>
+      </div>
+      
+      <!--右側マップ/エクスポート設定エリア -->
+      <!-- メインパネル内にデータ準備エリアを追加 -->
+      <div class="main-panel">
+        <!-- マップ表示エリア (基準データ検索モード) -->
+        <div id="map-area" class="map-wrapper">
+          <div id="map" class="map-container"></div>
+        </div>
+        
+        <!-- エクスポート設定エリア -->
+        <div id="export-area" class="export-wrapper" style="display:none;">
+          <div class="container py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h2>エクスポート設定</h2>
+              <div>
+                <button id="generate-export-report" class="btn btn-primary mr-2">分析レポート (HTML)</button>
+                <button id="generate-export-csv" class="btn btn-success">データ一覧 (CSV)</button>
+              </div>
+            </div>
+
+            <!--検索条件設定 -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">検索条件設定</h5>
+              </div>
+              <div class="card-body">
+                <!-- 検索半径設定 -->
+                <div class="form-group">
+                  <label for="batch-radius-slider">検索半径</label>
+                  <input type="range" class="custom-range" id="batch-radius-slider" min="0.5" max="5" step="0.1" value="2">
+                  <div id="batch-radius-label" class="mt-2">検索半径:2.0km</div>
+                </div>
+
+                <!-- 都道府県選択 -->
+                <div class="mt-4">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">都道府県選択</h5>
+                    <div>
+                      <button id="select-all-prefectures" class="btn btn-sm btn-outline-primary mr-2">全て選択</button>
+                      <button id="clear-all-prefectures" class="btn btn-sm btn-outline-secondary">選択解除</button>
+                    </div>
+                  </div>
+
+                  <!-- 地域・都道府県選択エリア -->
+                  <div class="region-prefecture-container">
+                    <!--北海道・東北 -->
+                    <div class="region-prefecture-set">
+                      <div class="region-title">北海道・東北</div>
+                      <div id="region-hokkaido-tohoku" class="prefecture-row"></div>
+                    </div>
+
+                    <!-- 関東 -->
+                    <div class="region-prefecture-set">
+                      <div class="region-title">関東</div>
+                      <div id="region-kanto" class="prefecture-row"></div>
+                    </div>
+
+                    <!-- 中部 -->
+                    <div class="region-prefecture-set">
+                      <div class="region-title">中部・北陸</div>
+                      <div id="region-chubu" class="prefecture-row"></div>
+                    </div>
+
+                    <!-- 近畿 -->
+                    <div class="region-prefecture-set">
+                      <div class="region-title">近畿</div>
+                      <div id="region-kinki" class="prefecture-row"></div>
+                    </div>
+
+                    <!-- 中国・四国 -->
+                    <div class="region-prefecture-set">
+                      <div class="region-title">中国・四国</div>
+                      <div id="region-chugoku-shikoku" class="prefecture-row"></div>
+                    </div>
+
+                    <!-- 九州・沖縄 -->
+                    <div class="region-prefecture-set">
+                      <div class="region-title">九州・沖縄</div>
+                      <div id="region-kyushu" class="prefecture-row"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 対象データ集計 -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">対象データ集計</h5>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table id="prefecture-data-summary" class="table table-bordered table-striped">
+                    <thead class="thead-light">
+                      <tr>
+                        <th>都道府県</th>
+                        <th>基準データ数</th>
+                        <th>対象データ数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- データは JavaScript で動的に追加 -->
+                      <tr>
+                        <td colspan="3" class="text-center">都道府県を選択してください</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- データ準備エリア（新規追加） -->
+        <div id="preparation-area" class="preparation-wrapper" style="display:none;">
+          <div class="container py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h2>データインポート手順</h2>
+            </div>
+            <p class="lead">データの準備から取り込みまでの手順を説明します。</p>
+            
+            <!-- ステップナビゲーション -->
+            <div class="step-navigation mb-4">
+              <div class="step-item active" data-step="1">1. 初期データ準備</div>
+              <div class="step-item" data-step="2">2. スクリプト実行</div>
+              <div class="step-item" data-step="3">3. データインポート</div>
+            </div>
+            
+            <!-- ステップコンテンツ -->
+            <div class="card">
+              <div class="card-body">
+                <!-- ステップ1: 初期データ準備 -->
+                <div class="step-content active" id="step-1">
+                  <div class="step-description">
+                    <h4><span class="step-icon">1</span>初期データを準備する</h4>
+                    <p>データは以下の形式でExcelで作成し、CSVファイルとして保存します。</p>
+
+                    <h5>データの必須フォーマット</h5>
+                    <div class="table-responsive">
+                      <table class="table table-bordered">
+                        <thead class="thead-light">
+                          <tr>
+                            <th>A列</th>
+                            <th>B列</th>
+                            <th>C列</th>
+                            <th>D列以降</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>郵便番号（必須）</td>
+                            <td>住所（必須）</td>
+                            <td>名称（必須）</td>
+                            <td>任意の追加項目</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div class="note-box">
+                      <strong>重要:</strong> 
+                      <ul>
+                        <li>郵便番号は必ず含めてください（座標取得に使用します）</li>
+                        <li>郵便番号は「123-4567」または「1234567」の形式で記載してください</li>
+                        <li>住所は都道府県から記載してください</li>
+                      </ul>
+                    </div>
+
+                    <h5>データ例：</h5>
+                    <div class="code-block">
+                      100-0013,東京都千代田区霞が関1-2-1,中央省庁ビル,官公庁<br>
+                      530-0001,大阪府大阪市北区梅田1-1-3,大阪駅前ビル,商業施設<br>
+                      060-0001,北海道札幌市中央区北1条西2丁目,札幌中心ビル,オフィス
+                    </div>
+                    
+                    <h5>手順:</h5>
+                    <ol>
+                      <li>ExcelなどでデータをA列、B列、C列の形式で作成する</li>
+                      <li>「名前を付けて保存」で「CSV (カンマ区切り)」を選択</li>
+                      <li>ファイル名を「input.csv」として保存</li>
+                      <li>geocode_postal.pyと同じフォルダに配置</li>
+                    </ol>
+                  </div>
+                </div>
+                
+                <!-- ステップ2: スクリプト実行 -->
+                <div class="step-content" id="step-2">
+                  <div class="step-description">
+                  <h4><span class="step-icon">2</span>スクリプトを実行する</h4>
+                    <p>準備したCSVデータに対してPythonスクリプトを実行し、座標を取得します。</p>
+                    
+                    <h5>1. スクリプトファイルの準備</h5>
+                    <p>以下のリンクからPythonスクリプトをダウンロードし、「geocode_postal.py」として保存してください。</p>
+                    
+                    <div class="text-center mb-3">
+                      <a href="geocode_postal.py.txt" download="geocode_postal.py" class="btn btn-primary"><i class="fas fa-download mr-1"></i> Pythonスクリプトをダウンロード
+                      </a>
+                    </div>
+                    
+                    <div class="note-box">
+                      <strong>注意:</strong> ファイルをダウンロードした後、必ずファイル名が「geocode_postal.py」になっていることを確認してください。ブラウザによっては自動的に「.txt」拡張子が付く場合があります。その場合は拡張子を削除してください。
+                    </div>
+                    
+                    <h5>2. 必要な準備（Pythonのインストール）</h5>
+                    <p>スクリプトを実行するには、Pythonとライブラリのインストールが必要です。</p>
+
+                    <div class="tabs">
+                      <div class="tab-header">
+                        <button class="tab-btn active" data-os="windows-install">Windows</button>
+                        <button class="tab-btn" data-os="mac-install">Mac</button>
+                        <button class="tab-btn" data-os="linux-install">Linux</button>
+                      </div>
+                      <div class="tab-content">
+                        <div class="tab-pane active" id="windows-install-cmd">
+                          <ol>
+                            <li><a href="https://www.python.org/downloads/windows/" target="_blank">Python公式サイト</a>からWindows用のインストーラーをダウンロードします</li>
+                            <li>インストーラーを実行し、「<strong>Add Python to PATH</strong>」にチェックを入れてインストールします</li>
+                            <li>インストール後、コマンドプロンプトを開いて以下のコマンドで必要なライブラリをインストールします：
+                              <div class="command-line">
+                                pip install pandas requests
+                              </div>
+                            </li>
+                            <li>正常にインストールされたか確認するには、以下のコマンドを実行します：
+                              <div class="command-line">
+                                python --version
+                              </div>
+                              <div class="command-line">
+                                pip list
+                              </div>
+                            </li>
+                          </ol>
+                        </div>
+                        <div class="tab-pane" id="mac-install-cmd">
+                          <ol>
+                            <li>MacにはPythonがプリインストールされていますが、最新版が推奨されます</li>
+                            <li>最新版をインストールするには、<a href="https://brew.sh/ja/" target="_blank">Homebrew</a>を使用するのが簡単です：
+                              <div class="command-line">
+                                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                              </div>
+                            </li>
+                            <li>Homebrewでの Python インストール：
+                              <div class="command-line">
+                                brew install python
+                              </div>
+                            </li>
+                            <li>必要なライブラリのインストール：
+                              <div class="command-line">
+                                pip3 install pandas requests
+                              </div>
+                            </li>
+                            <li>正常にインストールされたか確認：
+                              <div class="command-line">
+                                python3 --version
+                              </div>
+                              <div class="command-line">
+                                pip3 list
+                              </div>
+                            </li>
+                          </ol>
+                        </div>
+                        <div class="tab-pane" id="linux-install-cmd">
+                          <ol>
+                            <li>ほとんどのLinuxディストリビューションにはPythonが標準でインストールされています</li>
+                            <li>最新のPythonをインストールするには、パッケージマネージャを使用します（Ubuntu/Debianの場合）：
+                              <div class="command-line">
+                                sudo apt update
+                                sudo apt install python3 python3-pip
+                              </div>
+                            </li>
+                            <li>必要なライブラリのインストール：
+                              <div class="command-line">
+                                pip3 install pandas requests
+                              </div>
+                            </li>
+                            <li>正常にインストールされたか確認：
+                              <div class="command-line">
+                                python3 --version
+                              </div>
+                              <div class="command-line">
+                                pip3 list
+                              </div>
+                            </li>
+                          </ol>
+                        </div>
+                      </div>
+                    </div>
+                   
+                    <h5>3. スクリプト実行</h5>
+                    <div class="note-box mb-3">
+                      <strong>重要:</strong> スクリプトを実行するには、「input.csv」と「geocode_postal.py」が保存されている<strong>同じフォルダ</strong>で実行する必要があります。
+                    </div>
+
+                      <h6>【手順1】ファイルの準備</h6>
+                      <ol>
+                        <li>「geocode_postal.py」をダウンロードして保存した場所を確認します</li>
+                        <li>「input.csv」ファイルを同じフォルダに作成・保存してください</li>
+                      </ol>
+
+                      <h6>【手順2】コマンドラインでフォルダに移動</h6>
+                      <div class="tabs">
+                        <div class="tab-header">
+                          <button class="tab-btn active" data-os="windows">Windows</button>
+                          <button class="tab-btn" data-os="mac">Mac/Linux</button>
+                        </div>
+                        <div class="tab-content">
+                          <div class="tab-pane active" id="windows-cmd">
+                            <ol>
+                              <li><strong>コマンドプロンプト</strong>を開きます (Windowsキー + R を押し、「cmd」と入力)</li>
+                              <li>以下のコマンドでファイルのあるフォルダに移動します：
+                                <div class="command-line">cd C:\path\to\your\folder</div>
+                                <small class="text-muted">※「C:\path\to\your\folder」は実際のファイル保存場所に置き換えてください</small>
+                              </li>
+                              <li>「dir」コマンドでファイル一覧を確認できます：
+                                <div class="command-line">dir</div>
+                                <small>入力したコマンドで「geocode_postal.py」と「input.csv」が表示されていることを確認してください</small>
+                              </li>
+                            </ol>
+                          </div>
+                          <div class="tab-pane" id="mac-cmd">
+                            <ol>
+                              <li><strong>ターミナル</strong>アプリを開きます</li>
+                              <li>以下のコマンドでファイルのあるフォルダに移動します：
+                                <div class="command-line">cd /path/to/your/folder</div>
+                                <small class="text-muted">※「/path/to/your/folder」は実際のファイル保存場所に置き換えてください</small>
+                              </li>
+                              <li>「ls」コマンドでファイル一覧を確認できます：
+                                <div class="command-line">ls</div>
+                                <small>入力したコマンドで「geocode_postal.py」と「input.csv」が表示されていることを確認してください</small>
+                              </li>
+                            </ol>
+                          </div>
+                        </div>
+
+                      <h6>【手順3】Pythonスクリプトの実行</h6>
+                      <p>フォルダに移動できたら、以下のコマンドを実行してスクリプトを起動します：</p>
+                      
+                      <div class="command-line">
+                        python geocode_postal.py
+                      </div>
+
+                      <p>スクリプトが実行されると、郵便番号から座標を取得し、進捗状況が表示されます。処理が完了すると同じフォルダに
+                        <strong>output.csv</strong> ファイルが生成されます。
+                      </p>
+
+                      <div class="note-box">
+                        <strong>注意:</strong> 
+                        <ul>
+                          <li>APIには利用制限があるため、大量のデータ処理には時間がかかる場合があります。</li>
+                          <li>「python」コマンドでエラーが出る場合は「python3」を試してください：<br>
+                            <div class="command-line">python3 geocode_postal.py</div>
+                          </li>
+                        </ul>
+                      </div>    
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ステップ3: データインポート -->
+                <div class="step-content" id="step-3">
+                  <div class="step-description">
+                  <h4><span class="step-icon">3</span>結果を確認してインポートする</h4>
+                    <p>スクリプト実行後に生成されたCSVファイルを確認し、アプリケーションにインポートします。</p>
+                    
+                    <h5>出力ファイル:</h5>
+                    <p>スクリプト実行後、同じフォルダに <strong>output.csv</strong> が生成されます。</p>
+                    
+                    <h5>データ確認:</h5>
+                    <ol>
+                      <li>Excelなどでoutput.csvを開く</li>
+                      <li>緯度(latitude)と経度(longitude)の列に値が正しく入っているか確認する</li>
+                      <li>データに問題がなければ、このファイルを使用してインポートします</li>
+                    </ol>
+
+                    <h5>データインポート手順:</h5>
+                    <ol>
+                      <li>アプリケーション上部の「データインポート」ボタンをクリック</li>
+                      <li>「基準データ名」と「対象データ名」を入力（例：「ホテル」「店舗」など）</li>
+                      <li>CSVファイルの内容を直接コピーして対応する入力欄に貼り付け：
+                        <ul>
+                          <li>基準データとして使用するデータ → 「基準データ（テキスト）」欄</li>
+                          <li>対象データとして使用するデータ → 「対象データ（テキスト）」欄</li>
+                        </ul>
+                      </li>
+                      <li>「データをインポート」ボタンをクリック</li>
+                    </ol>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- データインポートモーダル -->
+  <div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="importModalLabel">データインポート</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!--基準データ名設定 -->
+          <div class="form-group">
+            <label for="baseDataName">基準データ名</label>
+            <input type="text" class="form-control" id="baseDataName" value="" placeholder="基準データの名前（例：店舗A）">
+          </div><div class="form-group">
+            <label for="baseTextInput">基準データ（テキスト）</label>
+            <textarea class="form-control" id="baseTextInput" rows="6" placeholder="基準データのテキストを貼り付けてください"></textarea>
+          </div>
+          <!-- 対象データ名設定 -->
+          <div class="form-group">
+            <label for="targetDataName">対象データ名</label>
+            <input type="text" class="form-control" id="targetDataName" value="" placeholder="対象データの名前（例：店舗）">
+          </div>
+          <div class="form-group">
+            <label for="targetTextInput">対象データ（テキスト）</label>
+            <textarea class="form-control" id="targetTextInput" rows="6" placeholder="対象データのテキストを貼り付けてください"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">キャンセル</button>
+          <button type="button" class="btn btn-primary" id="importDataBtn">データをインポート</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- スクリプト -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/analysis.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- コピー機能用のJavaScript -->
+  <script>function copyCode() {
+    const codeBlock = document.querySelector('.code-block pre code');
+    let codeText = codeBlock.textContent;
+    // 各行の先頭の余分なスペースを削除
+    codeText = codeText.replace(/^\s+/gm, '');
+    
+    const textArea = document.createElement('textarea');
+    textArea.value = codeText;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    
+    // コピー完了メッセージ
+    const button = document.querySelector('.code-block + .text-right .btn');
+    const originalText = button.textContent;
+    button.textContent = 'コピーしました!';
+    button.classList.remove('btn-primary');
+    button.classList.add('btn-success');
+    
+    setTimeout(() => {
+      button.textContent = originalText;
+      button.classList.remove('btn-success');
+      button.classList.add('btn-primary');
+    }, 2000);
+  }
+  </script>
+  
+  <!-- タブ切り替え用のJavaScript -->
+  <script>
+  // タブ切り替え用のJavaScript
+  document.addEventListener('DOMContentLoaded', function() {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        // 親要素のtab-headerを特定
+        const tabHeader = this.closest('.tab-header');
+        const tabContent = tabHeader.nextElementSibling;
+        
+        // 同じグループのボタンから'active'クラスを削除
+        tabHeader.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        
+        // クリックされたボタンに'active'クラスを追加
+        this.classList.add('active');
+        
+        // アクティブなタブコンテンツを変更
+        const os = this.getAttribute('data-os');
+        const targetId = os + '-cmd';
+        
+        // 同じグループのタブコンテンツから'active'クラスを削除
+        tabContent.querySelectorAll('.tab-pane').forEach(pane => {
+          pane.classList.remove('active');
+        });
+        
+        // 対象のタブコンテンツに'active'クラスを追加
+        tabContent.querySelector(`#${targetId}`).classList.add('active');
+      });
+    });
+  });
+
+  // ステップナビゲーションの切り替え
+  document.addEventListener('DOMContentLoaded', function() {
+    const stepItems = document.querySelectorAll('.step-navigation .step-item');
+    stepItems.forEach(item => {
+      item.addEventListener('click', function() {
+        // アクティブなステップナビゲーションを変更
+        document.querySelectorAll('.step-navigation .step-item').forEach(step => {
+          step.classList.remove('active');
+        });
+        this.classList.add('active');
+        
+        // アクティブなステップコンテンツを変更
+        const stepNum = this.getAttribute('data-step');
+        document.querySelectorAll('.step-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        document.getElementById('step-' + stepNum).classList.add('active');
+      });
+    });
+  });
+  </script>
+</body>
+</html>

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アパホテル×モスバーガー 位置関係分析ツール</title>
+  <!-- Leaflet (OpenStreetMap表示用) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Google Fonts & Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', sans-serif;
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    #root {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    .header {
+      background-color: #1976d2;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .app-title {
+      margin: 0;
+      font-size: 1.5rem;}
+    
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .main-content {
+      display: flex;
+      flex: 1;
+      position: relative;
+    }
+    
+    .sidebar {
+      width: 320px;
+      background-color: #f5f5f5;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      overflow-y: auto;
+      z-index: 10;
+    }
+    
+    .map-container {
+      flex: 1;
+      position: relative;
+    }
+    
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .bottom-panel {
+      height: 200px;
+      background-color: white;
+      border-top: 1px solid #e0e0e0;
+      padding: 15px;
+      overflow-y: auto;}
+    
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .panel-title {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #333;
+    }
+    
+    .control-group {
+      margin-bottom: 20px;
+    }
+    
+    .control-label {
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: block;color: #555;
+    }
+    
+    .hotel-select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    
+    .range-slider {
+      width: 100%;}
+    
+    .results-container {
+      background-color: #e8f4fd;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 20px;
+    }
+    
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    
+    .legend {
+      position: absolute;
+      bottom: 30px;
+      right: 10px;
+      background: white;
+      border-radius: 4px;
+      padding: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);z-index: 100;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .apa-marker {
+      background-color: #FF8C00; /* オレンジ色に変更 */
+    }
+    
+    .mos-marker {
+      background-color: #009140; /* モスバーガーのブランドカラー */
+    }
+    
+    .charts-container {
+      display: flex;
+      gap: 20px;
+      height: 170px;
+    }
+    
+    .chart-wrapper {
+      flex: 1;
+      position: relative;
+    }
+    
+    .btn {
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+    
+    .btn:hover {
+      background-color: #1565c0;
+    }
+    
+    .btn-secondary {
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #e0e0e0;
+    }
+    
+    .icon {
+      font-size: 18px;
+    }
+    
+    /* エクスポートメニュー */
+    .export-menu {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      padding: 10px 0;
+      z-index: 1000;
+      display: none;
+    }
+    
+    .export-menu.show {
+      display: block;
+    }
+    
+    .export-item {
+      padding: 8px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .export-item:hover {
+      background-color: #f5f5f5;
+    }
+    
+    /*ホテルピン選択状態表示用 */
+    .hotel-pin {
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .hotel-pin.selected {
+      transform: scale(1.2);
+      box-shadow: 0 0 0 3px white, 0 0 0 5px #FF8C00;z-index: 200!important;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <!-- ヘッダー -->
+    <header class="header">
+      <h1 class="app-title">アパホテル×モスバーガー 位置関係分析ツール</h1>
+      <div class="header-actions">
+        <button class="btn btn-secondary">
+          <span class="material-icons icon">settings</span>設定
+        </button>
+        <button class="btn btn-secondary" id="export-btn" onclick="toggleExportMenu()">
+          <span class="material-icons icon">file_download</span>エクスポート
+        </button><button class="btn">
+          <span class="material-icons icon">present_to_all</span>プレゼンモード
+        </button>
+      </div>
+    </header>
+    
+    <!-- エクスポートメニュー -->
+    <div class="export-menu" id="export-menu">
+      <div class="export-item" onclick="exportData('pdf')">
+        <span class="material-icons">picture_as_pdf</span>
+        <span>分析レポート (PDF)</span>
+      </div>
+      <div class="export-item" onclick="exportData('csv')">
+        <span class="material-icons">table_chart</span>
+        <span>店舗データ (CSV)</span>
+      </div>
+      <div class="export-item" onclick="exportData('image')">
+        <span class="material-icons">image</span>
+        <span>現在の地図 (PNG)</span>
+      </div>
+      <div class="export-item" onclick="exportData('chart')">
+        <span class="material-icons">bar_chart</span>
+        <span>グラフデータ (PNG)</span>
+      </div>
+    </div>
+    
+    <!-- メインコンテンツ -->
+    <div class="main-content">
+      <!-- サイドバー -->
+      <div class="sidebar">
+        <div class="control-group">
+          <label class="control-label">アパホテルを選択</label>
+          <select class="hotel-select" id="hotel-select" onchange="selectHotel(this.value)">
+            <option value="">ホテルを選択してください</option>
+            <option value="1" selected>アパホテル&リゾート 東京ベイ幕張</option>
+            <option value="2">アパホテル新宿歌舞伎町タワー</option>
+            <option value="3">アパホテル 浅草田原町駅前</option>
+            <option value="4">アパホテル 札幌すすきの駅前</option>
+            <option value="5">アパホテル 大阪梅田</option></select>
+          
+          <p style="font-size: 12px; color: #666; margin-top: 0;"><span class="material-icons" style="font-size: 12px; vertical-align: middle;">info</span>
+            地図上のアパホテルアイコンをクリックして選択することもできます
+          </p>
+          <button class="btn" style="width: 100%; margin-top: 10px;">
+            <span class="material-icons icon">add</span>比較ホテルを追加
+          </button>
+        </div>
+        
+        <div class="control-group">
+          <label class="control-label" id="radius-label">検索半径:2.0km</label>
+          <input type="range" min="0.5" max="5" step="0.1" value="2" class="range-slider" id="radius-slider">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: #666;">
+            <span>0.5km</span>
+            <span>5km</span>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <label class="control-label">フィルター</label>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" style="font-size: 12px; padding: 5px 10px;">
+              ドライブスルー
+            </button>
+            <button class="btn btn-secondary" style="font-size: 12px; padding: 5px 10px;">
+              24時間営業
+            </button>
+            <button class="btn btn-secondary" style="font-size: 12px; padding: 5px 10px;">駐車場あり
+            </button></div>
+        </div>
+        
+        <div class="results-container">
+          <div class="panel-header">
+            <h3 class="panel-title">分析結果</h3>
+          </div>
+          
+          <div class="result-item">
+            <span>検索範囲内のモス店舗数:</span>
+            <strong id="store-count">12店舗</strong>
+          </div><div class="result-item">
+            <span>最も近いモス店舗:</span>
+            <strong id="nearest-store">350m（モスバーガー幕張店）</strong>
+          </div>
+          
+          <div class="result-item">
+            <span>最も遠いモス店舗:</span>
+            <strong id="farthest-store">1.9km（モスバーガー浜田山店）</strong>
+          </div>
+          
+          <div class="result-item">
+            <span>平均距離:</span>
+            <strong id="average-distance">1.2km</strong>
+          </div></div>
+      </div>
+      
+      <!-- 地図表示エリア -->
+      <div class="map-container">
+        <div id="map"></div>
+        <!--凡例 -->
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color apa-marker"></div>
+            <span>アパホテル</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color mos-marker"></div>
+            <span>モスバーガー</span>
+          </div><div class="legend-item">
+            <div style="width: 20px; height: 20px; border: 2px solid rgba(25, 118, 210, 0.5); border-radius: 50%; margin-right: 8px;"></div>
+            <span>検索範囲</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 下部パネル -->
+    <div class="bottom-panel">
+      <div class="panel-header">
+        <h3 class="panel-title">分析グラフ</h3>
+        <div>
+          <button class="btn btn-secondary">
+            <span class="material-icons icon">tune</span>グラフ設定
+          </button></div>
+      </div>
+      
+      <div class="charts-container">
+        <div class="chart-wrapper">
+          <canvas id="distanceChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="directionChart"></canvas>
+        </div></div>
+    </div>
+  </div>
+  
+  <script>
+    // モックデータ（実際の利用ではJSONファイルとして外部保存）
+    const mockData = {
+      apaHotels: [
+        { id: "1", name: "アパホテル&リゾート 東京ベイ幕張", lat: 35.6458, lng: 140.0281 },
+        { id: "2", name: "アパホテル新宿歌舞伎町タワー", lat: 35.6956, lng: 139.7018 },
+        { id: "3", name: "アパホテル 浅草田原町駅前", lat: 35.7103, lng: 139.7909 },
+        { id: "4", name: "アパホテル 札幌すすきの駅前", lat: 43.0553, lng: 141.3533 },
+        { id: "5", name: "アパホテル 大阪梅田", lat: 34.7056, lng: 135.4983 }
+      ],
+      mossBurgers: [
+        { id: "1", name: "モスバーガー幕張店", lat: 35.6502, lng: 140.0224 },
+        { id: "2", name: "モスバーガー幕張本郷店", lat: 35.6491, lng: 140.0366 },
+        { id: "3", name: "モスバーガー海浜幕張店", lat: 35.6399, lng: 140.0178 },
+        { id: "4", name: "モスバーガー習志野店", lat: 35.6553, lng: 140.0438 },
+        { id: "5", name: "モスバーガー稲毛店", lat: 35.6342, lng: 140.0190 },
+        { id: "6", name: "モスバーガー浜田山店", lat: 35.6378, lng: 140.0373 },
+        { id: "7", name: "モスバーガー美浜店", lat: 35.6523, lng: 140.0138 },
+        { id: "8", name: "モスバーガー武石店", lat: 35.6611, lng: 140.0312 },
+        { id: "9", name: "モスバーガー検見川店", lat: 35.6422, lng: 140.0445 },
+        { id: "10", name: "モスバーガー磯辺店", lat: 35.6487, lng: 140.0111 },
+        { id: "11", name: "モスバーガー津田沼店", lat: 35.6506, lng: 140.0402 },
+        { id: "12", name: "モスバーガー幕張新都心店", lat: 35.6519, lng: 140.0289 }
+      ]
+    };
+    
+    // グローバル変数
+    let map;
+    let circleLayer;
+    let selectedHotelId = "1"; // デフォルト選択
+    let searchRadius = 2; // kmデフォルト
+    let hotelMarkers = {};
+    let burgerMarkers = {};
+    // 初期化処理
+    window.onload = function() {
+      initMap();
+      initCharts();
+      
+      // 範囲スライダーイベント
+      document.getElementById('radius-slider').addEventListener('input', function(e) {
+        searchRadius = parseFloat(e.target.value);
+        document.getElementById('radius-label').textContent = `検索半径: ${searchRadius.toFixed(1)}km`;
+        updateCircle();
+        analyzeData();
+      });
+    };
+    
+    // 地図初期化
+    function initMap() {
+      // OpenStreetMapを使用した地図初期化
+      map = L.map('map').setView([35.6458, 140.0281], 13);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+      }).addTo(map);
+      
+      // アパホテルのマーカー追加
+      mockData.apaHotels.forEach(hotel => {
+        const markerIcon = L.divIcon({
+          className: 'hotel-pin',
+          html: `<div class="legend-color apa-marker" style="width: 30px; height: 30px; border: 2px solid white;"></div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+        
+        const marker = L.marker([hotel.lat, hotel.lng], {
+          icon: markerIcon,
+          title: hotel.name
+        }).addTo(map);
+        
+        //ホテルマーカーのクリックイベント
+        marker.on('click', function() {
+          selectHotel(hotel.id);
+        });
+        
+        // マーカー参照用に保存
+        hotelMarkers[hotel.id] = marker;
+        // 最初に選択されたホテルのマーカーに選択スタイルを適用
+        if (hotel.id === selectedHotelId) {
+          marker._icon.classList.add('selected');
+        }
+      });
+      
+      // モスバーガーのマーカー追加
+      mockData.mossBurgers.forEach(store => {
+        const markerIcon = L.divIcon({
+          className: '',
+          html: `<div class="legend-color mos-marker" style="width: 20px; height: 20px; border: 2px solid white;"></div>`,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        });
+        
+        const marker = L.marker([store.lat, store.lng], {
+          icon: markerIcon,
+          title: store.name
+        }).addTo(map);
+        
+        // ポップアップ
+        marker.bindPopup(`<b>${store.name}</b>`);
+        
+        // マーカー参照用に保存
+        burgerMarkers[store.id] = marker;
+      });
+      
+      // 初期円の描画
+      updateCircle();
+      
+      // 初期分析
+      analyzeData();
+    }
+    
+    // 円の更新
+    function updateCircle() {
+      // 既存の円を削除
+      if (circleLayer) {
+        map.removeLayer(circleLayer);
+      }
+      
+      // 選択されたホテルを取得
+      const hotel = mockData.apaHotels.find(h => h.id === selectedHotelId);
+      if (!hotel) return;
+      
+      // 新しい円を追加
+      circleLayer = L.circle([hotel.lat, hotel.lng], {
+        radius: searchRadius * 1000, // km → m
+        color:'rgba(25, 118, 210, 0.5)',
+        fillColor: 'rgba(25, 118, 210, 0.1)',
+        fillOpacity: 0.2
+      }).addTo(map);
+    }
+    
+    // ホテル選択処理
+    function selectHotel(hotelId) {
+      // ドロップダウン選択肢と連動
+      const selectElem = document.getElementById('hotel-select');
+      selectElem.value = hotelId;
+      
+      // 以前の選択を解除
+      if (selectedHotelId && hotelMarkers[selectedHotelId]) {
+        hotelMarkers[selectedHotelId]._icon.classList.remove('selected');
+      }
+      
+      // 新しいホテルを選択
+      selectedHotelId = hotelId;
+      
+      // 選択されたホテルのマーカーにスタイルを適用
+      if (hotelMarkers[hotelId]) {
+        hotelMarkers[hotelId]._icon.classList.add('selected');
+      }
+      
+      // 円とデータ分析を更新
+      updateCircle();
+      analyzeData();
+    }
+    
+    // データ分析関数
+    function analyzeData() {
+      // モックの分析関数（実際には距離計算などを行う）
+      console.log(`ホテルID: ${selectedHotelId}、検索範囲: ${searchRadius}km の分析実行`);
+    }
+    
+    // グラフ初期化
+    function initCharts() {
+      // 距離帯ごとの店舗数グラフ
+      const distanceCtx = document.getElementById('distanceChart').getContext('2d');
+      const distanceChart = new Chart(distanceCtx, {
+        type: 'bar',
+        data: {
+          labels: ['0-0.5km', '0.5-1km', '1-1.5km', '1.5-2km'],
+          datasets: [{
+            label: '距離帯ごとの店舗数',
+            data: [1, 4, 5, 2],
+            backgroundColor:'rgba(0, 145, 64, 0.7)',
+            borderColor: 'rgba(0, 145, 64, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                precision: 0
+              }
+            }
+          }
+        }
+      });
+      
+      // 方角ごとの店舗数グラフ
+      const directionCtx = document.getElementById('directionChart').getContext('2d');
+      const directionChart = new Chart(directionCtx, {
+        type: 'radar',
+        data: {
+          labels: ['北', '北東', '東', '南東', '南', '南西', '西', '北西'],
+          datasets: [{
+            label: '方角ごとの店舗数',
+            data: [2, 3, 1, 0, 2, 2, 1, 1],
+            backgroundColor: 'rgba(25, 118, 210, 0.2)',
+            borderColor: 'rgba(25, 118, 210, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              angleLines: {
+                display: true
+              },
+              suggestedMin: 0
+            }
+          }
+        }
+      });
+    }
+    
+    // エクスポートメニュー表示切替
+    function toggleExportMenu() {
+      const menu = document.getElementById('export-menu');
+      menu.classList.toggle('show');
+    }
+    
+    // エクスポート処理
+    function exportData(type) {
+      const exportTypes = {
+        pdf: "分析レポート (PDF)",
+        csv: "店舗データ (CSV)",
+        image: "現在の地図 (PNG)",
+        chart: "グラフデータ (PNG)"
+      };
+      
+      alert(`${exportTypes[type]}のエクスポートを開始します`);
+      document.getElementById('export-menu').classList.remove('show');
+    }
+    // クリック以外の場所をクリックしたときにメニューを閉じる
+    document.addEventListener('click', function(event) {
+      const exportMenu = document.getElementById('export-menu');
+      const exportBtn = document.getElementById('export-btn');
+      
+      if (exportMenu.classList.contains('show') && 
+          !exportMenu.contains(event.target) && 
+          !exportBtn.contains(event.target)) {
+        exportMenu.classList.remove('show');
+      }
+    });
+  </script>
+</body>
+</html>
