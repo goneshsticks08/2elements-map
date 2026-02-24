@@ -1,5 +1,9 @@
 /* ===== 基本レイアウト ===== */
+
 body {
+  zoom: 0.7;
+  /* 画面全体を70%に縮小（ブラウザのズーム機能と同等） */
+  font-size: 1rem;
   font-family: 'Helvetica Neue', Arial, sans-serif;
   margin: 0;
   padding: 0;
@@ -14,26 +18,29 @@ body {
 .main-header {
   position: sticky;
   top: 0;
-  z-index: 1500; /* 他の要素よりも前面に表示するための高い値 */
+  z-index: 1500;
+  /* 他の要素よりも前面に表示するための高い値 */
   background-color: #f8f9fa;
   border-bottom: 5px solid #f8f9fa;
   margin-bottom: 0;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   width: 100%;
 }
 
 /* スクロール時の表示を改善 */
 body {
-  scroll-padding-top: 60px; /* ヘッダーの高さに合わせて調整 */
+  scroll-padding-top: 60px;
+  /* ヘッダーの高さに合わせて調整 */
 }
 
 /* 既存のz-indexよりも高い値を設定 */
 .sidebar-toggle {
-  z-index: 1510; /* ヘッダーのz-indexより大きい値 */
+  z-index: 1510;
+  /* ヘッダーのz-indexより大きい値 */
 }
 
 .header-title {
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: bold;
   margin: 0;
   color: #333;
@@ -70,38 +77,62 @@ body {
   background-color: #f8f9fa;
   border-right: 1px solid #ddd;
   transition: width 0.3s ease;
-  overflow-y: auto;
+  overflow: visible;
+  /* overflow-y: autoを削除し、右側のトグルボタンが隠れないようにする */
   z-index: 100;
   display: flex;
   flex-direction: column;
 }
 
 .sidebar.collapsed {
-  width: 50px;
+  width: 0;
+  border-right: none;
 }
 
 .sidebar-toggle {
   position: absolute;
-  top: 10px;right: 5px; /* 右端からの距離を調整 */
-  width: 26px; /* サイズを少し小さく */
-  height: 26px;
-  z-index: 120; /* 重なりの優先度を上げる */
+  top: 10px;
+  right: -35px;
+  /* 右外側に突き出すように配置 */
+  width: 35px;
+  height: 35px;
+  z-index: 1000;
+  background-color: #007bff;
+  color: white;
+  border-radius: 0 4px 4px 0;
+  border: 1px solid #0056b3;
+  border-left: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+  background-color: #0056b3;
 }
 
 .sidebar.collapsed .sidebar-toggle {
   transform: rotate(180deg);
+  border-radius: 4px 0 0 4px;
+  border-left: 1px solid #0056b3;
+  border-right: none;
+  right: -35px;
 }
 
 .sidebar-content {
-  padding-top: 25px; /* 上部に余白を追加 */
   padding: 15px;
-  width: 100%;
+  width: 350px;
+  /* 固定幅を持たせることで折りたたみ時のレイアウト崩れを防ぐ */
   transition: opacity 0.2s ease;
   overflow-y: auto;
   flex: 1;
 }
 
-.sidebar.collapsed .sidebar-content {
+.sidebar.collapsed .sidebar-content,
+.sidebar.collapsed .sidebar-tabs {
   opacity: 0;
   pointer-events: none;
 }
@@ -117,7 +148,7 @@ body {
 }
 
 .sidebar-section h3 {
-  font-size: 16px;
+  font-size: 1.25rem;
   margin-top: 0;
   margin-bottom: 10px;
   color: #333;
@@ -125,36 +156,43 @@ body {
 
 /* ===== タブ切り替えボタン ===== */
 .sidebar-tabs {
-  display: flex;
-  width: 100%;
-  margin-bottom: 15px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  width: 350px;
+  /* Sidebarと同じ固定幅 */
+  padding: 10px;
   border-bottom: 1px solid #dee2e6;
-  padding-right: 35px; /* トグルボタンのためのスペース確保 */
+  background: #f8f9fa;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 /* タブボタンのテキスト改行を防止 */
 .tab-btn {
-  flex: 1;
-  padding: 10px 4px; /* 左右のパディングを調整 */
+  padding: 5px 2px;
   background: #f8f9fa;
-  border: none;
-  border-bottom: 2px solid transparent;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.3s;white-space: nowrap;
+  transition: all 0.3s;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.85rem; /* フォントサイズをさらに小さく */
-  min-width: 0; /* flexアイテムのサイズ計算を修正 */
+  font-size: 0.8rem;
+  /* フォントサイズを小さく */
 }
 
 .tab-btn.active {
-  background: #fff;
-  border-bottom: 2px solid #007bff;
-  color: #007bff;
+  background: #007bff;
+  border-color: #007bff;
+  color: white;
 }
 
-.tab-btn:hover {
+.tab-btn:hover:not(.active) {
   background: #e9ecef;
 }
 
@@ -166,7 +204,9 @@ body {
   position: relative;
   height: 100%;
   min-height: 0;
-  overflow-y: auto !important; -webkit-overflow-scrolling: touch; /* モバイルでのスクロールを滑らかに */
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  /* モバイルでのスクロールを滑らかに */
 }
 
 /* ===== マップコンテナ ===== */
@@ -192,7 +232,7 @@ body {
   background-color: white;
   padding: 15px;
   border-radius: 5px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   max-height: 35vh;
   overflow-y: auto;
 }
@@ -214,7 +254,8 @@ body {
 .target-data-list {
   margin-top: 15px;
   max-height: 300px;
-  overflow-y: auto;border: 1px solid #eee;
+  overflow-y: auto;
+  border: 1px solid #eee;
   border-radius: 5px;
 }
 
@@ -244,7 +285,7 @@ body {
 }
 
 .target-distance {
-  font-size: 13px;
+  font-size: 0.9rem;
   color: #555;
 }
 
@@ -287,26 +328,29 @@ body {
 .legend-color.base-marker {
   width: 20px;
   height: 20px;
-  background-color: #FF8C00; /* オレンジ色 - 基準データ */
+  background-color: #FF8C00;
+  /* オレンジ色 - 基準データ */
   border: 2px solid white;
 }
 
 .legend-color.target-marker {
   width: 15px;
   height: 15px;
-  background-color: #009140; /* 緑色 - 対象データ */
+  background-color: #009140;
+  /* 緑色 - 対象データ */
   border: 2px solid white;
 }
 
 .legend-label {
-  font-size: 14px;
+  font-size: 1rem;
   color: #333;
 }
 
 .legend-description {
   display: block;
-  font-size: 11px;
-  color: #666;margin-top: -2px;
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: -2px;
 }
 
 /* ===== ヘッダー内の凡例 ===== */
@@ -350,11 +394,14 @@ body {
   padding: 0 3px;
 }
 
-/* ===== エクスポートエリア ===== */
-.export-wrapper {
+/* ===== エクスポート・距離計算エリア ===== */
+.export-wrapper,
+.distance-calc-wrapper {
   height: 100%;
-  overflow-y: auto !important; /* スクロールを強制 */
-  padding-bottom: 50px; /* 余白を追加 */
+  overflow-y: auto !important;
+  /* スクロールを強制 */
+  padding-bottom: 50px;
+  /* 余白を追加 */
 }
 
 /* ===== 都道府県チェックボックス ===== */
@@ -401,12 +448,16 @@ body {
 
 /* 検索条件設定の高さを制限 */
 .card-body {
-  max-height: 60vh; /* 画面の60%までに制限 */
-  overflow-y: auto; /* スクロール可能に */
+  max-height: 60vh;
+  /* 画面の60%までに制限 */
+  overflow-y: auto;
+  /* スクロール可能に */
 }
 
 .table-responsive {
-  max-height: 60vh; /* より大きな高さに設定 */overflow-y: auto;
+  max-height: 60vh;
+  /* より大きな高さに設定 */
+  overflow-y: auto;
 }
 
 /* 対象データコンテナが見えるようにする */
@@ -429,7 +480,8 @@ body {
 /* スライダーのつまみを大きくするスタイル */
 input[type=range] {
   -webkit-appearance: none;
-  appearance: none; /* 標準プロパティを追加 */
+  appearance: none;
+  /* 標準プロパティを追加 */
   width: 100%;
   margin: 10px 0;
 }
@@ -448,7 +500,7 @@ input[type=range]::-webkit-slider-thumb {
   cursor: pointer;
   margin-top: -8px;
   border: 2px solid white;
-  box-shadow: 0 0 2px rgba(0,0,0,0.2);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
 }
 
 input[type=range]::-moz-range-thumb {
@@ -458,7 +510,7 @@ input[type=range]::-moz-range-thumb {
   background: #007bff;
   cursor: pointer;
   border: 2px solid white;
-  box-shadow: 0 0 2px rgba(0,0,0,0.2);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
 }
 
 /* スライダーのトラック部分 */
@@ -553,14 +605,17 @@ input[type=range]::-moz-range-track {
   border-radius: 5px;
   font-family: monospace;
   overflow-x: auto;
-  margin: 10px 0;line-height: 1.5;
+  margin: 10px 0;
+  line-height: 1.5;
   font-size: 14px;
 }
 
 /* コマンドライン */
 .command-line {
-  background-color: #2c3e50; /* 濃い青系の背景 */
-  color: #ddd; /* 白に変更 */
+  background-color: #2c3e50;
+  /* 濃い青系の背景 */
+  color: #ddd;
+  /* 白に変更 */
   border: none;
   border-radius: 4px;
   padding: 10px 15px;
@@ -608,7 +663,8 @@ input[type=range]::-moz-range-track {
   line-height: 1.5;
 }
 
-.step-description ul, .step-description ol {
+.step-description ul,
+.step-description ol {
   padding-left: 25px;
   margin-bottom: 15px;
 }
@@ -633,8 +689,10 @@ input[type=range]::-moz-range-track {
 /* データ準備エリア */
 .preparation-wrapper {
   height: 100%;
-  overflow-y: auto !important; /* スクロールを強制 */
-  padding-bottom: 50px; /* 余白を追加 */
+  overflow-y: auto !important;
+  /* スクロールを強制 */
+  padding-bottom: 50px;
+  /* 余白を追加 */
 }
 
 /* カード内のステップコンテンツ調整 */
@@ -679,24 +737,25 @@ input[type=range]::-moz-range-track {
   .sidebar {
     width: 270px;
   }
+
   .header-title {
     font-size: 20px;
   }
-  
+
   .header-actions .btn {
     font-size: 12px;
     padding: 0.375rem 0.5rem;
   }
-  
+
   .main-header .legend-title,
   .main-header .legend-label {
     font-size: 11px;
   }
-  
+
   .main-header .legend-description {
     font-size: 9px;
   }
-  
+
   .main-header .legend-item {
     margin-right: 8px;
   }
@@ -706,42 +765,43 @@ input[type=range]::-moz-range-track {
   .sidebar.collapsed {
     width: 0;
   }
-  
+
   .sidebar-toggle {
     right: -15px;
     background-color: #007bff;
     color: white;
   }
-  
+
   .map-container {
     min-height: 400px;
   }
-  
+
   .result-item {
     flex-direction: column;
   }
-  
-  .result-label, .result-value {
+
+  .result-label,
+  .result-value {
     width: 100%;
   }
-  
+
   .header-title {
     font-size: 18px;
   }
-  
+
   .legend-item {
     margin-right: 10px;
   }
-  
+
   .legend-label {
     font-size: 12px;
   }
-  
+
   .col-auto.d-flex {
     flex-direction: column;
     align-items: flex-start !important;
   }
-  
+
   .main-header .map-legend {
     margin-bottom: 10px;
   }
@@ -753,26 +813,28 @@ input[type=range]::-moz-range-track {
     flex-wrap: wrap;
     justify-content: flex-end;
   }
-  
+
   .header-actions .btn {
     margin: 2px;
   }
-  
+
   .bottom-panel .row {
     flex-direction: column;
   }
-  
+
   .bottom-panel .col-auto {
-    margin-top: 10px;text-align: center;
+    margin-top: 10px;
+    text-align: center;
   }
-  
+
   .map-legend {
     justify-content: center;
   }
 }
 
 /* 画面全体をスクロール可能にする追加対策 */
-body, html {
+body,
+html {
   overflow-y: auto !important;
   height: 100%;
 }
