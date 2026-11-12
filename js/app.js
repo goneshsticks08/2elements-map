@@ -62,6 +62,34 @@ function setDataNames(baseName, targetName) {
   const targetNameElement = document.getElementById('target-data-name');
   if (baseNameElement) baseNameElement.textContent = baseDataName;
   if (targetNameElement) targetNameElement.textContent = targetDataName;
+  applyDataLabels();
+}
+
+/**
+ * レポート表示用のデータ名（未入力時は「基準データ」「対象データ」）
+ */
+function getBaseLabel() {
+  return baseDataName && baseDataName !== "データ未設定" ? baseDataName : "基準データ";
+}
+function getTargetLabel() {
+  return targetDataName && targetDataName !== "データ未設定" ? targetDataName : "対象データ";
+}
+
+/**
+ * data-label="base" / "target" を付けた要素の表記をデータ名に置き換える
+ */
+function applyDataLabels() {
+  document.querySelectorAll('[data-label="base"]').forEach(el => { el.textContent = getBaseLabel(); });
+  document.querySelectorAll('[data-label="target"]').forEach(el => { el.textContent = getTargetLabel(); });
+}
+
+/**
+ * レポート用HTMLに埋め込む文字列をエスケープする
+ */
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[ch]);
 }
 
 /**
@@ -372,6 +400,12 @@ function updateSelectedPrefectures() {
   const tableBody = document.querySelector('#prefecture-data-summary tbody');
   if (!tableBody) return; // tableBodyが存在しない場合は処理しない
 
+  // 見出しの検索半径表示を更新
+  const radiusSlider = document.getElementById('batch-radius-slider');
+  const radius = radiusSlider ? parseFloat(radiusSlider.value) : 2.0;
+  const radiusLabel = document.getElementById('summary-radius');
+  if (radiusLabel) radiusLabel.textContent = radius.toFixed(1);
+
   tableBody.innerHTML = '';
 
   if (selectedPrefectures.length === 0) {
@@ -381,39 +415,25 @@ function updateSelectedPrefectures() {
     return;
   }
 
-  let totalBaseData = 0;
-  let totalTargetData = 0;
-
-  // 選択された各都道府県のデータを表示
-  selectedPrefectures.forEach(prefecture => {
-    const baseData = getBaseDataByPrefecture(prefecture);
-    const baseCount = baseData.length;
-
-    //対象データの都道府県別カウント
-    const targetData = getTargetData().filter(target => {
-      return extractPrefecture(target.address) === prefecture;
-    });
-    const targetCount = targetData.length;
-
+  // 選択された各都道府県の基準データ数と、検索半径内の対象データ数（重複なし）を表示
+  const summary = aggregateByPrefecture(selectedPrefectures, radius);
+  summary.rows.forEach(row => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${prefecture}</td>
-      <td>${baseCount}</td>
-      <td>${targetCount}</td>
+      <td>${row.prefecture}</td>
+      <td>${row.baseCount}</td>
+      <td>${row.targetCount}</td>
     `;
     tableBody.appendChild(tr);
-
-    totalBaseData += baseCount;
-    totalTargetData += targetCount;
   });
 
-  // 合計行を追加
+  // 合計行を追加（対象データ数は全都道府県を通して重複を除いた件数）
   const totalRow = document.createElement('tr');
   totalRow.className = 'table-active font-weight-bold';
   totalRow.innerHTML = `
     <td>合計</td>
-    <td>${totalBaseData}</td>
-    <td>${totalTargetData}</td>
+    <td>${summary.totalBase}</td>
+    <td>${summary.totalTarget}</td>
   `;
   tableBody.appendChild(totalRow);
 }
@@ -507,6 +527,8 @@ function setupEventListeners() {
     batchRadiusSlider.addEventListener('input', (e) => {
       const val = e.target.value;
       batchRadiusLabel.textContent = `検索半径: ${val}km`;
+      // 集計表を半径に合わせて更新
+      updateSelectedPrefectures();
     });
   }
 

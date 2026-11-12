@@ -119,7 +119,11 @@ function showPrintableReport(baseData) {
     const allTargetData = getTargetData();
     const baseTotalCount = allBaseData.length;
     const targetTotalCount = allTargetData.length;
-    
+
+    // レポートに表示するデータ名（インポート時に入力した名前）
+    const baseLabel = escapeHtml(getBaseLabel());
+    const targetLabel = escapeHtml(getTargetLabel());
+
     // 分析データの取得
     const radius = document.getElementById('radius-slider').value;
     const targetsInRadius = getTargetData().filter(target => {
@@ -140,7 +144,7 @@ function showPrintableReport(baseData) {
       });
       const nearestTarget = targetsInRadius[0];
       const nearestDistance = calculateDistance(baseData.lat, baseData.lng, nearestTarget.lat, nearestTarget.lng);
-      nearestTargetInfo = `<p>最も近い対象データ: ${nearestTarget.name} (${nearestDistance.toFixed(2)}km)</p>`;
+      nearestTargetInfo = `<p>最も近い${targetLabel}: ${nearestTarget.name} (${nearestDistance.toFixed(2)}km)</p>`;
       
       // 平均距離
       const totalDistance = targetsInRadius.reduce((sum, target) => {
@@ -177,7 +181,7 @@ function showPrintableReport(baseData) {
     let targetTable = `<table border="1" style="border-collapse: collapse; width: 100%; margin-top: 20px;">
       <thead>
         <tr>
-          <th style="padding: 8px;">対象データ名</th>
+          <th style="padding: 8px;">${targetLabel}名</th>
           <th style="padding: 8px;">距離(km)</th>
           <th style="padding: 8px;">方角</th>
           <th style="padding: 8px;">住所</th></tr>
@@ -198,8 +202,6 @@ function showPrintableReport(baseData) {
       `;
     });
 
-targetTable += `</tbody></table>`;
-    
     targetTable += `</tbody>
       </table>`;
     
@@ -242,7 +244,7 @@ targetTable += `</tbody></table>`;
         <h3>位置関係マップ</h3>
         <div id="report-map" style="height: 400px; width: 100%;"></div>
         <p style="font-size: 12px; color: #777; margin-top: 5px;">
-          * オレンジ色が基準データ、緑色が対象データです。範囲: ${radius}km
+          * オレンジ色が${baseLabel}、緑色が${targetLabel}です。範囲: ${radius}km
         </p>
       </div>
       <script>
@@ -351,11 +353,11 @@ targetTable += `</tbody></table>`;
             <div class="section">
               <h2>基本情報</h2>
               <p>作成日時: ${dateStr} ${timeStr}</p>
-              <p>基準データ: ${baseDataName || "未設定"} （総数: ${baseTotalCount}件）</p>
-              <p>対象データ: ${targetDataName || "未設定"} （総数: ${targetTotalCount}件）</p>
+              <p>${baseLabel}（総数: ${baseTotalCount}件）</p>
+              <p>${targetLabel}（総数: ${targetTotalCount}件）</p>
             </div><div class="section">
-              <h2>選択基準データ情報</h2>
-              <p>基準データ名: ${baseData.name}</p>
+              <h2>選択した${baseLabel}の情報</h2>
+              <p>${baseLabel}名: ${baseData.name}</p>
               <p>住所: ${baseData.address || "情報なし"}</p>
               <!-- 電話番号の表示を削除 -->
             </div>
@@ -366,14 +368,14 @@ targetTable += `</tbody></table>`;
             
             <div class="section">
               <h2>検索結果サマリー</h2>
-              <p>対象データ数: ${targetsInRadius.length}件</p>
+              <p>${targetLabel}数: ${targetsInRadius.length}件</p>
               ${nearestTargetInfo}${avgDistanceInfo}
             </div>
             
             ${mapImageHTML}
             
             <div class="section">
-              <h2>対象データリスト</h2>
+              <h2>${targetLabel}リスト</h2>
               ${targetTable}
             </div>
             
@@ -443,29 +445,10 @@ function generateBatchExportReport(baseDataList, radius) {
     const baseTotalCount = allBaseData.length;
     const targetTotalCount = allTargetData.length;
     
-    // データの集計（選択された都道府県のみ）
-    const prefCountMap = new Map();
-    // 基準データの集計
-    baseDataList.forEach(item => {
-      const pref = extractPrefecture(item.address);
-      if (!prefCountMap.has(pref)) {
-        prefCountMap.set(pref, { base: 0, target: 0 });
-      }
-      prefCountMap.get(pref).base++;
-    });
-    
-    // 対象データの集計
-    //選択された都道府県内のみカウント
-     allTargetData.forEach(target => {
-      const pref = extractPrefecture(target.address);
-      if (selectedPrefectures.includes(pref)) {
-        if (!prefCountMap.has(pref)) {
-          prefCountMap.set(pref, { base: 0, target: 0 });
-        }
-        prefCountMap.get(pref).target++;
-      }
-    });
-    
+    // レポートに表示するデータ名（インポート時に入力した名前）
+    const baseLabel = escapeHtml(getBaseLabel());
+    const targetLabel = escapeHtml(getTargetLabel());
+
     // メインカードと同じ順序で都道府県を表示するための処理
     // 地域ごとの都道府県配列（app.jsから地域マップ定義を利用）
     const orderedPrefectures = [
@@ -485,22 +468,15 @@ function generateBatchExportReport(baseDataList, radius) {
       "福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
     ];
     
-    // 集計データを地域順にソート
-    const sortedPrefDataArray = [];
-    orderedPrefectures.forEach(pref => {
-      if (prefCountMap.has(pref)) {
-        sortedPrefDataArray.push([pref, prefCountMap.get(pref)]);
-      }
+    // 選択された都道府県を地域順に並べ、検索半径内の対象データ数（重複なし）を集計
+    const sortedPrefectures = orderedPrefectures.filter(pref => selectedPrefectures.includes(pref));
+    selectedPrefectures.forEach(pref => {
+      if (!sortedPrefectures.includes(pref)) sortedPrefectures.push(pref); // 「不明」など
     });
-    
-    //合計を計算
-    let totalBase = 0;
-    let totalTarget = 0;
-    sortedPrefDataArray.forEach(entry => {
-      totalBase += entry[1].base;
-      totalTarget += entry[1].target;
-    });
-    
+    const summary = aggregateByPrefecture(sortedPrefectures, radius);
+    const totalBase = summary.totalBase;
+    const totalTarget = summary.totalTarget;
+
     // HTMLレポートの構築
     const htmlContent = `
       <!DOCTYPE html>
@@ -555,29 +531,32 @@ function generateBatchExportReport(baseDataList, radius) {
             <div class="section">
               <h2>基本情報</h2>
               <p>作成日時: ${dateStr} ${timeStr}</p>
-              <p>基準データ: ${baseDataName || "未設定"} （総数: ${baseTotalCount}件）</p>
-              <p>対象データ: ${targetDataName || "未設定"} （総数: ${targetTotalCount}件）</p>
+              <p>${baseLabel}（総数: ${baseTotalCount}件）</p>
+              <p>${targetLabel}（総数: ${targetTotalCount}件）</p>
             </div><div class="section">
               <h2>検索条件</h2>
               <p>検索半径: ${radius}km</p>
               <p>選択都道府県数: ${selectedPrefectures.length}件</p>
-              <p>対象データ数: ${baseDataList.length}件</p>
+              <p>${baseLabel}数（選択都道府県）: ${baseDataList.length}件</p>
             </div><div class="section">
               <h2>分析結果一覧</h2>
+              <p style="font-size: 12px; color: #777;">
+                ${targetLabel}数は、各都道府県の${baseLabel}から検索半径${radius}km以内にある店舗数です（重複は1件として数えます）。
+              </p>
               <table>
                 <thead>
                   <tr>
                     <th>都道府県</th>
-                    <th>基準データ数</th>
-                    <th>対象データ数</th>
+                    <th>${baseLabel}数</th>
+                    <th>${targetLabel}数（半径${radius}km以内）</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${sortedPrefDataArray.map(([pref, counts]) => `
+                  ${summary.rows.map(row => `
                     <tr>
-                      <td>${pref}</td>
-                      <td>${counts.base}</td>
-                      <td>${counts.target}</td>
+                      <td>${row.prefecture}</td>
+                      <td>${row.baseCount}</td>
+                      <td>${row.targetCount}</td>
                     </tr>
                   `).join('')}<tr class="total-row">
                     <td>合計</td>

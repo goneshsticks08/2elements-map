@@ -178,11 +178,11 @@
             <h3>データサマリー</h3>
             <div class="data-summary-container p-3 bg-light rounded border">
               <div class="summary-item d-flex justify-content-between mb-2">
-                <span class="font-weight-bold">基準データ総数：</span>
+                <span class="font-weight-bold"><span data-label="base">基準データ</span>総数：</span>
                 <span id="base-data-total">0件</span>
               </div>
               <div class="summary-item d-flex justify-content-between">
-                <span class="font-weight-bold">対象データ総数：</span>
+                <span class="font-weight-bold"><span data-label="target">対象データ</span>総数：</span>
                 <span id="target-data-total">0件</span>
               </div>
             </div>
@@ -428,19 +428,22 @@
               </div>
             </div>
 
-            <!-- 対象データ集計 -->
+            <!-- 対象データ集計（表記は data-label でインポート時のデータ名に置き換わる） -->
             <div class="card mb-4">
               <div class="card-header">
-                <h5 class="mb-0">対象データ集計</h5>
+                <h5 class="mb-0"><span data-label="target">対象データ</span>集計</h5>
               </div>
               <div class="card-body">
+                <p class="text-muted small mb-2">
+                  <span data-label="target">対象データ</span>数は、各都道府県の<span data-label="base">基準データ</span>から検索半径<span id="summary-radius">2.0</span>km以内にある店舗数です（重複は1件として数えます）。
+                </p>
                 <div class="table-responsive">
                   <table id="prefecture-data-summary" class="table table-bordered table-striped">
                     <thead class="thead-light">
                       <tr>
                         <th>都道府県</th>
-                        <th>基準データ数</th>
-                        <th>対象データ数</th>
+                        <th><span data-label="base">基準データ</span>数</th>
+                        <th><span data-label="target">対象データ</span>数（半径内）</th>
                       </tr>
                     </thead>
                     <tbody>
