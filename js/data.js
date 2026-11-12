@@ -166,32 +166,41 @@ function findTargetsInRadius(baseLocation, radiusKm) {
 }
 
 /**
+ * 店舗名を比較用に正規化する（全角/半角・空白の違いを吸収）
+ */
+function normalizeStoreName(name) {
+  return String(name || '').normalize('NFKC').replace(/\s+/g, '');
+}
+
+/**
  * 都道府県別に、基準データ数と「検索半径内にある対象データ数（重複なし）」を集計する
- * - 対象データは、その都道府県の基準データのいずれかの半径内に入るものを1件と数える
+ * - 対象データは、その都道府県の基準データのいずれかの半径内に入るものを数える
+ * - 同じ都道府県内では、同じ店名の対象データは1件として数える
  * - 県境で2県の基準データの半径に入る対象データは、各県で1件ずつ数える
- * - 合計の対象データ数は、全都道府県を通して重複を除いた件数
+ * - 合計は各都道府県の件数の合計（県境の店舗は県ごとに数えるため）
  * @param {string[]} prefectures - 集計する都道府県（この順で返す）
  * @param {number} radiusKm - 検索半径（km）
  * @returns {{rows: {prefecture: string, baseCount: number, targetCount: number}[], totalBase: number, totalTarget: number}}
  */
 function aggregateByPrefecture(prefectures, radiusKm) {
-  const allTargetsInRadius = new Set();
   let totalBase = 0;
+  let totalTarget = 0;
 
   const rows = prefectures.map(prefecture => {
     const bases = getBaseDataByPrefecture(prefecture);
-    const targetsInRadius = new Set();
+    const targetNames = new Set();
     bases.forEach(base => {
       findTargetsInRadius(base, radiusKm).forEach(target => {
-        targetsInRadius.add(target);
-        allTargetsInRadius.add(target);
+        // 店名がない場合はIDで区別する
+        targetNames.add(normalizeStoreName(target.name) || `id:${target.id}`);
       });
     });
     totalBase += bases.length;
-    return { prefecture, baseCount: bases.length, targetCount: targetsInRadius.size };
+    totalTarget += targetNames.size;
+    return { prefecture, baseCount: bases.length, targetCount: targetNames.size };
   });
 
-  return { rows, totalBase, totalTarget: allTargetsInRadius.size };
+  return { rows, totalBase, totalTarget };
 }
 
 /**

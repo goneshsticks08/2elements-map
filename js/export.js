@@ -541,7 +541,7 @@ function generateBatchExportReport(baseDataList, radius) {
             </div><div class="section">
               <h2>分析結果一覧</h2>
               <p style="font-size: 12px; color: #777;">
-                ${targetLabel}数は、各都道府県の${baseLabel}から検索半径${radius}km以内にある店舗数です（重複は1件として数えます）。
+                ${targetLabel}数は、各都道府県の${baseLabel}から検索半径${radius}km以内にある店舗数です（同じ都道府県内で同じ店名は1件として数えます）。
               </p>
               <table>
                 <thead>

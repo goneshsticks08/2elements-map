@@ -427,7 +427,7 @@ function updateSelectedPrefectures() {
     tableBody.appendChild(tr);
   });
 
-  // 合計行を追加（対象データ数は全都道府県を通して重複を除いた件数）
+  // 合計行を追加（各都道府県の件数の合計）
   const totalRow = document.createElement('tr');
   totalRow.className = 'table-active font-weight-bold';
   totalRow.innerHTML = `
