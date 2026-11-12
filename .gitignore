@@ -1,0 +1,13 @@
+# 店舗データ・作業用ファイル（公開リポジトリには含めない）
+※ShopList/
+※errorfile/
+doc/
+input.txt
+input.csv
+output*.csv
+geocode/input.txt
+geocode/input.csv
+geocode/output*.csv
+
+# Python
+__pycache__/

@@ -1,3 +1,15 @@
+# 社内ネットワーク等でのSSLエラー（CERTIFICATE_VERIFY_FAILED）対策:
+# Windowsの証明書ストア（ブラウザと同じ信頼済み証明書）でHTTPS通信を検証する。
+# このスクリプトの実行中のみ有効で、PC上の他のPythonプログラムには影響しない。
+# 事前に `pip install truststore` が必要（Python 3.10以上）。
+# requests より前に読み込む必要があるため、ファイル先頭に置いている。
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except ImportError:
+    print("⚠️ truststore が未インストールのため、Python標準の証明書で通信します。")
+    print("   社内ネットワークでSSLエラーになる場合は `pip install truststore` を実行してください。")
+
 import pandas as pd
 import requests
 import time
