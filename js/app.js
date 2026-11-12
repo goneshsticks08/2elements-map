@@ -683,7 +683,7 @@ function initDistanceCalcMode() {
   // 計算ボタンのイベントリスナー
   const calcBtn = document.getElementById('btn-calculate-distance');
   if (calcBtn) {
-    calcBtn.addEventListener('click', calculateDistance);
+    calcBtn.addEventListener('click', calculateTravelDistance);
   }
 
   // 適用ボタンのイベントリスナー
@@ -693,7 +693,12 @@ function initDistanceCalcMode() {
   }
 }
 
-function calculateDistance() {
+/**
+ * 距離計算タブ：移動手段と所要時間から検索半径（km）を算出する
+ * ※ 2点間の距離を求める calculateDistance(lat1, lng1, lat2, lng2)（analysis.js）と
+ *   名前が衝突すると、分析処理のたびにこの関数が呼ばれてアラートが連続表示されるため別名にしている
+ */
+function calculateTravelDistance() {
   const pref = document.getElementById('calc-prefecture').value;
   const transport = document.getElementById('calc-transport').value;
   const time = parseFloat(document.getElementById('calc-time').value);
