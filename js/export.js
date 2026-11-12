@@ -628,26 +628,28 @@ function generateCSVReport(selectedPrefectures, radius) {
   let csvContent = "都道府県,基準データ（名称）,基準データ（住所）,対象データ（名称）,対象データ（住所）,距離(km)\n";
   
   // 各基準データに対する検索結果をCSVに追加
+  // 検索半径内に対象データがない基準データは出力しない
+  let rowCount = 0;
   baseDataList.forEach(baseData => {
     const prefecture = extractPrefecture(baseData.address);
     const nearbyTargets = findTargetsInRadius(baseData, radius);
-    
-    if (nearbyTargets.length === 0) {
-      // 近くの対象データがない場合は、基準データのみ出力
-      csvContent += `${prefecture},${baseData.name},${baseData.address},,,""\n`;
-    } else {
-      // 近くの対象データがある場合は、各対象データとの組み合わせを出力
-      nearbyTargets.forEach(target => {
-        const distance = calculateDistance(
-          baseData.lat, baseData.lng, 
-          target.lat, target.lng
-        ).toFixed(2);
-        
-        csvContent += `${prefecture},${baseData.name},${baseData.address},${target.name},${target.address},${distance}\n`;
-      });
-    }
+
+    nearbyTargets.forEach(target => {
+      const distance = calculateDistance(
+        baseData.lat, baseData.lng,
+        target.lat, target.lng
+      ).toFixed(2);
+
+      csvContent += `${prefecture},${baseData.name},${baseData.address},${target.name},${target.address},${distance}\n`;
+      rowCount++;
+    });
   });
-  
+
+  if (rowCount === 0) {
+    alert(`選択された都道府県には、検索半径${radius}km以内に対象データがある基準データがありません。`);
+    return;
+  }
+
   // CSVファイルのダウンロード
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
