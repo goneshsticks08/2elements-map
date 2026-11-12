@@ -42,43 +42,90 @@ return { baseData, targetData };
 /**
  * テキストデータ（タブ区切り）をパースしてJSONに変換する
  */
-function importTextData(baseText, targetText) {
-  try {
-    const parseTSV = (text) => {
-      const lines = text.trim().split('\n');
-      const header = lines[0].split('\t');
-      return lines.slice(1).map(line => {
-        const values = line.split('\t');
-        const obj = {};
-        header.forEach((h, i) => {
-          let key = h.trim();
-          // 地図表示用にキー名を統一
-          if (key === 'latitude') key = 'lat';
-          if (key === 'longitude') key = 'lng';
-          if (key === 'ホテル名' || key === '店名称（漢字）') key = 'name';
-          if (key === '住所') key = 'address';
-          if (key === 'ホテル番号' || key === '店コード') key = 'id';
-          
-          let val = values[i] ? values[i].trim() : "";
-          if (key === 'lat' || key === 'lng') val = parseFloat(val);
-          obj[key] = val;
-        });
-        return obj;
-      });
-    };
+// 見出し名の別名（比較時は前後空白を除去し、英字は小文字・括弧は半角に揃える）
+const HEADER_ALIASES = {
+  id: ['ホテル番号', '店コード', '店舗コード', 'コード', '番号', 'id', 'no', 'no.'],
+  name: ['ホテル名', '店名称(漢字)', '店舗名', '店名', '名称', '名前', 'name'],
+  address: ['住所', '所在地', 'address'],
+  lat: ['latitude', 'lat', '緯度'],
+  lng: ['longitude', 'lng', 'lon', '経度']
+};
 
-    baseData = parseTSV(baseText);
-    targetData = parseTSV(targetText);
+// 直近のインポート失敗理由（画面表示用）
+let lastImportError = '';
+
+function normalizeHeader(h) {
+  return h.replace(/^﻿/, '').trim().toLowerCase()
+    .replace(/（/g, '(').replace(/）/g, ')');
+}
+
+function resolveHeaderKey(h) {
+  const n = normalizeHeader(h);
+  for (const [key, aliases] of Object.entries(HEADER_ALIASES)) {
+    if (aliases.includes(n)) return key;
+  }
+  return h.trim();
+}
+
+/**
+ * タブ区切りテキストをパースする
+ * @param {string} text - 1行目が見出しのタブ区切りテキスト
+ * @param {string} label - エラーメッセージ用のデータ名
+ */
+function parseTSV(text, label) {
+  const lines = (text || '').split(/\r?\n/).filter(line => line.trim() !== '');
+  if (lines.length < 2) {
+    throw new Error(`${label}：見出し行とデータ行が必要です`);
+  }
+
+  const keys = lines[0].split('\t').map(resolveHeaderKey);
+  const missing = [];
+  if (!keys.includes('name')) missing.push('店舗名（例：店舗名・ホテル名）');
+  if (!keys.includes('lat')) missing.push('緯度（例：緯度・latitude）');
+  if (!keys.includes('lng')) missing.push('経度（例：経度・longitude）');
+  if (missing.length > 0) {
+    throw new Error(`${label}：次の列の見出しが見つかりません\n・${missing.join('\n・')}\n（タブ区切りで貼り付けているかも確認してください）`);
+  }
+
+  return lines.slice(1).map((line, rowIndex) => {
+    const values = line.split('\t');
+    const obj = {};
+    keys.forEach((key, i) => {
+      let val = values[i] ? values[i].trim() : "";
+      if (key === 'lat' || key === 'lng') val = parseFloat(val);
+      obj[key] = val;
+    });
+    // ID列がない・空欄の行は連番を振る
+    if (!obj.id) obj.id = `${rowIndex + 1}`;
+    obj.id = String(obj.id);
+    if (obj.address === undefined) obj.address = '';
+    return obj;
+  });
+}
+
+function importTextData(baseText, targetText) {
+  lastImportError = '';
+  try {
+    baseData = parseTSV(baseText, '基準データ');
+    targetData = parseTSV(targetText, '対象データ');
     dataLoaded = true;
     // 都道府県情報を処理
     processPrefectureData();
-    
+
+    // 都道府県を「すべて」に戻し、基準データの選択肢を全件で作成
+    const prefSelect = document.getElementById('prefecture-select');
+    if (prefSelect) prefSelect.value = '';
+    updateBaseDataSelectByPrefecture('');
+
     return true;
   } catch (error) {
     console.error('パースエラー:', error);
+    lastImportError = error.message;
     return false;
   }
 }
+
+function getLastImportError() { return lastImportError; }
 
 /**
  * 都道府県を住所から抽出する関数
@@ -95,6 +142,7 @@ function extractPrefecture(address) {
     '福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県'
   ];
   
+  if (!address) return '不明';
   for (const pref of prefectures) {
     if (address.includes(pref)) {
       return pref;

@@ -534,7 +534,8 @@ function setupEventListeners() {
           initExportMode();
         }
       } else {
-        alert('データのパースに失敗しました。形式を確認してください。');
+        const reason = getLastImportError();
+        alert('データのパースに失敗しました。形式を確認してください。' + (reason ? '\n\n' + reason : ''));
       }
     });
   }
